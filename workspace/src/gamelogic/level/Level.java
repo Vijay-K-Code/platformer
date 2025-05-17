@@ -366,5 +366,64 @@ public class Level {
 }
 
 private void addGas(int col, int row, Map map, int numSquaresToFill, ArrayList<Gas> placedThisRound) {
-     
-}	
+    // Get tiles array (column-major)
+    Tile[][] tiles = map.getTiles();
+
+    // If starting position is invalid or solid, just return
+    if (col < 0 || col >= tiles.length || row < 0 || row >= tiles[0].length) return;
+    if (tiles[col][row].isSolid()) return;
+
+    // Place the first gas tile at (col, row)
+    Gas startGas = new Gas(col, row, tileSize, tileset.getImage("GasOne"), this, 0);
+    map.addTile(col, row, startGas);
+    placedThisRound.add(startGas);
+    numSquaresToFill--;
+
+    // Loop while we still have gas tiles to place and have places to try spreading from
+    int index = 0;  // index to go through placedThisRound
+
+    while (numSquaresToFill > 0 && index < placedThisRound.size()) {
+        Gas currentGas = placedThisRound.get(index);
+        int c = currentGas.getCol();
+        int r = currentGas.getRow();
+
+        // Try to place gas UP
+        if (r - 1 >= 0 && !tiles[c][r - 1].isSolid() && !(tiles[c][r - 1] instanceof Gas)) {
+            Gas newGas = new Gas(c, r - 1, tileSize, tileset.getImage("GasOne"), this, 0);
+            map.addTile(c, r - 1, newGas);
+            placedThisRound.add(newGas);
+            numSquaresToFill--;
+            if (numSquaresToFill == 0) break;
+        }
+
+        // Try to place gas LEFT
+        if (c - 1 >= 0 && !tiles[c - 1][r].isSolid() && !(tiles[c - 1][r] instanceof Gas)) {
+            Gas newGas = new Gas(c - 1, r, tileSize, tileset.getImage("GasOne"), this, 0);
+            map.addTile(c - 1, r, newGas);
+            placedThisRound.add(newGas);
+            numSquaresToFill--;
+            if (numSquaresToFill == 0) break;
+        }
+
+        // Try to place gas RIGHT
+        if (c + 1 < tiles.length && !tiles[c + 1][r].isSolid() && !(tiles[c + 1][r] instanceof Gas)) {
+            Gas newGas = new Gas(c + 1, r, tileSize, tileset.getImage("GasOne"), this, 0);
+            map.addTile(c + 1, r, newGas);
+            placedThisRound.add(newGas);
+            numSquaresToFill--;
+            if (numSquaresToFill == 0) break;
+        }
+
+        // Try to place gas DOWN
+        if (r + 1 < tiles[0].length && !tiles[c][r + 1].isSolid() && !(tiles[c][r + 1] instanceof Gas)) {
+            Gas newGas = new Gas(c, r + 1, tileSize, tileset.getImage("GasOne"), this, 0);
+            map.addTile(c, r + 1, newGas);
+            placedThisRound.add(newGas);
+            numSquaresToFill--;
+            if (numSquaresToFill == 0) break;
+        }
+
+        index++; // Move on to next gas tile to spread from
+    }
+}
+
