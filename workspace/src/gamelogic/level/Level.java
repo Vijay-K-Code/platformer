@@ -197,96 +197,66 @@ public class Level {
 	//Your code goes here! 
 	//Please make sure you read the rubric/directions carefully and implement the solution recursively!
 	private void water(int col, int row, Map map, int fullness) {
-    // Defensive checks
-    if (col < 0 || col >= map.getTiles().length) return;
-    if (row < 0 || row >= map.getTiles()[0].length) return;
+    // Check for boundaries first
+    if (col < 0 || col >= map.getTiles().length || row < 0 || row >= map.getTiles()[0].length) {
+        return; // Outside map bounds
+    }
 
     Tile[][] tiles = map.getTiles();
 
-    // Check if there is already water here, do not overwrite
-    if (tiles[col][row] instanceof Water) return;
+    // If this tile is solid or already water with same or higher fullness, don't overwrite
+    Tile current = tiles[col][row];
+    if (current.isSolid()) return;
+    if (current instanceof Water) {
+        Water w = (Water) current;
+        if (w.getFullness() >= fullness) return;
+    }
 
-    // Check if the tile is solid (ground or platform), we can't place water here
-    if (tiles[col][row] != null && tiles[col][row].isSolid()) return;
+    // Create the new water tile
+    String imageName;
+    if (fullness == 3) {
+        imageName = "Full_water";
+    } else if (fullness == 2) {
+        imageName = "Half_water";
+    } else if (fullness == 1) {
+        imageName = "Quarter_water";
+    } else {
+        imageName = "Falling_water";
+    }
 
-    // Determine the water image string by fullness level
-    String imageName = switch (fullness) {
-        case 3 -> "Full_water";
-        case 2 -> "Half_water";
-        case 1 -> "Quarter_water";
-        case 0 -> "Falling_water";
-        default -> "Full_water"; // fallback
-    };
-
-    // Create and place the new water tile
     Water w = new Water(col, row, tileSize, tileset.getImage(imageName), this, fullness);
     map.addTile(col, row, w);
 
     // Try to flow down first
-    int belowRow = row + 1;
-    if (belowRow < tiles[0].length) {
-        Tile below = tiles[col][belowRow];
+    if (row + 1 < tiles[0].length && !tiles[col][row + 1].isSolid()) {
+        water(col, row + 1, map, 0); // Falling_water fullness 0
+        return; // Water flows down only (don't flow sideways if falling)
+    }
 
-        // If tile below is empty and not solid (water can fall down)
-        if (below == null || !below.isSolid()) {
-            // Flow down as Falling_water regardless of current fullness
-            water(col, belowRow, map, 0);
-            return; // Water flows down, no sideways flow this step
+    // If can't go down, flow left and right
+    // Flow right
+    if (col + 1 < tiles.length) {
+        // If below right tile is air, water flows down there instead
+        if (row + 1 < tiles[0].length && !tiles[col + 1][row + 1].isSolid()) {
+            water(col + 1, row + 1, map, 0);
         } else {
-            // If tile below is solid or full water block, then current water becomes full block
-            // (We already placed it with proper fullness above)
-            // Now flow sideways
-            // But check if below row below left or below right are open air (water should flow down there instead)
-            int belowLeftRow = belowRow;
-            int belowRightRow = belowRow;
+            // Flow sideways with adjusted fullness
+            int newFullness = fullness == 3 ? 2 : (fullness == 2 ? 1 : 1);
+            water(col + 1, row, map, newFullness);
+        }
+    }
 
-            // Flow right
-            if (col + 1 < tiles.length) {
-                Tile rightTile = tiles[col + 1][row];
-                Tile belowRightTile = tiles[col + 1][belowRightRow];
-
-                // Only flow right if current side tile is not solid and not water yet
-                if ((rightTile == null || !rightTile.isSolid()) && !(rightTile instanceof Water)) {
-                    // But if belowRightTile is empty and not solid, water should fall down there instead of sideways
-                    if (belowRightRow < tiles[0].length && (belowRightTile == null || !belowRightTile.isSolid())) {
-                        // Flow down at belowRight (falling water)
-                        water(col + 1, belowRightRow, map, 0);
-                    } else {
-                        // Flow sideways with reduced fullness
-                        int newFullness = switch (fullness) {
-                            case 3 -> 2;  // Full -> Half
-                            case 2 -> 1;  // Half -> Quarter
-                            case 1 -> 1;  // Quarter -> Quarter (stays)
-                            default -> 1; // fallback to quarter
-                        };
-                        water(col + 1, row, map, newFullness);
-                    }
-                }
-            }
-
-            // Flow left
-            if (col - 1 >= 0) {
-                Tile leftTile = tiles[col - 1][row];
-                Tile belowLeftTile = tiles[col - 1][belowLeftRow];
-
-                if ((leftTile == null || !leftTile.isSolid()) && !(leftTile instanceof Water)) {
-                    if (belowLeftRow < tiles[0].length && (belowLeftTile == null || !belowLeftTile.isSolid())) {
-                        // Flow down at belowLeft (falling water)
-                        water(col - 1, belowLeftRow, map, 0);
-                    } else {
-                        int newFullness = switch (fullness) {
-                            case 3 -> 2;
-                            case 2 -> 1;
-                            case 1 -> 1;
-                            default -> 1;
-                        };
-                        water(col - 1, row, map, newFullness);
-                    }
-                }
-            }
+    // Flow left
+    if (col - 1 >= 0) {
+        if (row + 1 < tiles[0].length && !tiles[col - 1][row + 1].isSolid()) {
+            water(col - 1, row + 1, map, 0);
+        } else {
+            int newFullness = fullness == 3 ? 2 : (fullness == 2 ? 1 : 1);
+            water(col - 1, row, map, newFullness);
         }
     }
 }
+
 
 
 
