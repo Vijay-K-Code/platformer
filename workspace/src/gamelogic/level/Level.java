@@ -364,3 +364,7 @@ public class Level {
 		return player;
 	}
 }
+
+private void addGas(int col, int row, Map map, int numSquaresToFill, ArrayList<Gas> placedThisRound) {
+     
+}	
