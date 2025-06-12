@@ -196,66 +196,83 @@ public class Level {
 	//#############################################################################################################
 	//Your code goes here! 
 	//Please make sure you read the rubric/directions carefully and implement the solution recursively!
-	private void water(int col, int row, Map map, int fullness) {
-    // Check for boundaries first
-    if (col < 0 || col >= map.getTiles().length || row < 0 || row >= map.getTiles()[0].length) {
-        return; // Outside map bounds
-    }
-
+	/**
+ * Recursively simulates water flow in the game world starting at (col, row).
+ * @param col the x-position (column) in the map grid
+ * @param row the y-position (row) in the map grid
+ * @param map the current level's map object
+ * @param fullness how full the water is (3 = Full, 2 = Half, 1 = Quarter, 0 = Falling)
+ */
+/**
+ * Recursively simulates water flow in the game world starting at (col, row).
+ * @param col the x-position (column) in the map grid
+ * @param row the y-position (row) in the map grid
+ * @param map the current level's map object
+ * @param fullness how full the water is (3 = Full, 2 = Half, 1 = Quarter, 0 = Falling)
+ */
+private void water(int col, int row, Map map, int fullness) {
     Tile[][] tiles = map.getTiles();
 
-    // If this tile is solid or already water with same or higher fullness, don't overwrite
+    // Bounds check
+    if (col < 0 || col >= tiles.length || row < 0 || row >= tiles[0].length)
+        return;
+
     Tile current = tiles[col][row];
+
+    // Stop if it's solid
     if (current.isSolid()) return;
+
+    // Stop if it's already water with equal or greater fullness
     if (current instanceof Water) {
-        Water w = (Water) current;
-        if (w.getFullness() >= fullness) return;
+        Water existing = (Water) current;
+        if (existing.getFullness() >= fullness) return;
     }
 
-    // Create the new water tile
+    // Fix: If this water is sitting on a solid tile (2 tiles down), it should be full
+    if (fullness < 3 && row + 2 < tiles[0].length && tiles[col][row + 2].isSolid()) {
+        fullness = 3;
+    }
+
+    // Determine image name
     String imageName;
-    if (fullness == 3) {
-        imageName = "Full_water";
-    } else if (fullness == 2) {
-        imageName = "Half_water";
-    } else if (fullness == 1) {
-        imageName = "Quarter_water";
-    } else {
-        imageName = "Falling_water";
-    }
+    if (fullness == 3) imageName = "Full_water";
+    else if (fullness == 2) imageName = "Half_water";
+    else if (fullness == 1) imageName = "Quarter_water";
+    else imageName = "Falling_water";
 
+    // Place the water tile
     Water w = new Water(col, row, tileSize, tileset.getImage(imageName), this, fullness);
     map.addTile(col, row, w);
 
-    // Try to flow down first
+    // Try to flow downward first
     if (row + 1 < tiles[0].length && !tiles[col][row + 1].isSolid()) {
-        water(col, row + 1, map, 0); // Falling_water fullness 0
-        return; // Water flows down only (don't flow sideways if falling)
+        water(col, row + 1, map, 0); // Falling water
+        return;
     }
 
-    // If can't go down, flow left and right
-    // Flow right
-    if (col + 1 < tiles.length) {
-        // If below right tile is air, water flows down there instead
-        if (row + 1 < tiles[0].length && !tiles[col + 1][row + 1].isSolid()) {
-            water(col + 1, row + 1, map, 0);
-        } else {
-            // Flow sideways with adjusted fullness
-            int newFullness = fullness == 3 ? 2 : (fullness == 2 ? 1 : 1);
-            water(col + 1, row, map, newFullness);
+    // Spread sideways if not falling water
+    if (fullness > 0) {
+        // Spread right
+        if (col + 1 < tiles.length && !tiles[col + 1][row].isSolid()) {
+            if (row + 1 < tiles[0].length && tiles[col + 1][row + 1].isSolid()) {
+                // Only flow right if there's support below
+                water(col + 1, row, map, fullness);
+            } else if (row + 1 < tiles[0].length && !tiles[col + 1][row + 1].isSolid()) {
+                water(col + 1, row + 1, map, 0);
+            }
         }
-    }
 
-    // Flow left
-    if (col - 1 >= 0) {
-        if (row + 1 < tiles[0].length && !tiles[col - 1][row + 1].isSolid()) {
-            water(col - 1, row + 1, map, 0);
-        } else {
-            int newFullness = fullness == 3 ? 2 : (fullness == 2 ? 1 : 1);
-            water(col - 1, row, map, newFullness);
+        // Spread left
+        if (col - 1 >= 0 && !tiles[col - 1][row].isSolid()) {
+            if (row + 1 < tiles[0].length && tiles[col - 1][row + 1].isSolid()) {
+                water(col - 1, row, map, fullness);
+            } else if (row + 1 < tiles[0].length && !tiles[col - 1][row + 1].isSolid()) {
+                water(col - 1, row + 1, map, 0);
+            }
         }
     }
 }
+
 
 
 
@@ -365,65 +382,137 @@ public class Level {
 	}
 }
 
+/**
+ * Adds gas tiles spreading from (col, row) on the given map.
+ *
+ * Precondition: 
+ *   - col and row are valid indices inside map bounds.
+ *   - map is not null and tiles are properly initialized.
+ *   - numSquaresToFill > 0.
+ *   - placedThisRound is an ArrayList tracking the newly placed gas tiles.
+ *
+ * Postcondition:
+ *   - Up to numSquaresToFill gas tiles have been placed.
+ *   - Gas tiles spread in this order from each placed tile:
+ *       up, up-right, up-left, right, left, down, down-right, down-left.
+ *   - Only placed on non-solid, non-gas tiles within the map.
+ *   - placedThisRound contains all new gas tiles.
+ */
 private void addGas(int col, int row, Map map, int numSquaresToFill, ArrayList<Gas> placedThisRound) {
-    // Get tiles array (column-major)
     Tile[][] tiles = map.getTiles();
 
-    // If starting position is invalid or solid, just return
-    if (col < 0 || col >= tiles.length || row < 0 || row >= tiles[0].length) return;
-    if (tiles[col][row].isSolid()) return;
+    // Validate starting position
+    if (col < 0 || col >= tiles.length || row < 0 || row >= tiles[0].length) {
+        return;
+    }
+    if (tiles[col][row] == null || tiles[col][row].isSolid()) {
+        return;
+    }
 
-    // Place the first gas tile at (col, row)
+    // Place initial gas tile
     Gas startGas = new Gas(col, row, tileSize, tileset.getImage("GasOne"), this, 0);
     map.addTile(col, row, startGas);
     placedThisRound.add(startGas);
     numSquaresToFill--;
 
-    // Loop while we still have gas tiles to place and have places to try spreading from
-    int index = 0;  // index to go through placedThisRound
+    int index = 0;
+
+    // Directions in the required order: up, up-right, up-left, right, left, down, down-right, down-left
+    int[][] directions = {
+        {0, -1},   // up
+        {1, -1},   // up-right
+        {-1, -1},  // up-left
+        {1, 0},    // right
+        {-1, 0},   // left
+        {0, 1},    // down
+        {1, 1},    // down-right
+        {-1, 1}    // down-left
+    };
 
     while (numSquaresToFill > 0 && index < placedThisRound.size()) {
         Gas currentGas = placedThisRound.get(index);
         int c = currentGas.getCol();
         int r = currentGas.getRow();
 
-        // Try to place gas UP
-        if (r - 1 >= 0 && !tiles[c][r - 1].isSolid() && !(tiles[c][r - 1] instanceof Gas)) {
-            Gas newGas = new Gas(c, r - 1, tileSize, tileset.getImage("GasOne"), this, 0);
-            map.addTile(c, r - 1, newGas);
-            placedThisRound.add(newGas);
-            numSquaresToFill--;
-            if (numSquaresToFill == 0) break;
-        }
+        // Check all directions in order
+        for (int i = 0; i < directions.length; i++) {
+            int newCol = c + directions[i][0];
+            int newRow = r + directions[i][1];
 
-        // Try to place gas LEFT
-        if (c - 1 >= 0 && !tiles[c - 1][r].isSolid() && !(tiles[c - 1][r] instanceof Gas)) {
-            Gas newGas = new Gas(c - 1, r, tileSize, tileset.getImage("GasOne"), this, 0);
-            map.addTile(c - 1, r, newGas);
-            placedThisRound.add(newGas);
-            numSquaresToFill--;
-            if (numSquaresToFill == 0) break;
-        }
+            // Check bounds
+            if (newCol >= 0 && newCol < tiles.length && newRow >= 0 && newRow < tiles[0].length) {
+                Tile targetTile = tiles[newCol][newRow];
 
-        // Try to place gas RIGHT
-        if (c + 1 < tiles.length && !tiles[c + 1][r].isSolid() && !(tiles[c + 1][r] instanceof Gas)) {
-            Gas newGas = new Gas(c + 1, r, tileSize, tileset.getImage("GasOne"), this, 0);
-            map.addTile(c + 1, r, newGas);
-            placedThisRound.add(newGas);
-            numSquaresToFill--;
-            if (numSquaresToFill == 0) break;
-        }
+                // Check if the tile is valid for gas placement
+                if (targetTile != null && !targetTile.isSolid() && !(targetTile instanceof Gas)) {
+                    Gas newGas = new Gas(newCol, newRow, tileSize, tileset.getImage("GasOne"), this, 0);
+                    map.addTile(newCol, newRow, newGas);
+                    placedThisRound.add(newGas);
+                    numSquaresToFill--;
 
-        // Try to place gas DOWN
-        if (r + 1 < tiles[0].length && !tiles[c][r + 1].isSolid() && !(tiles[c][r + 1] instanceof Gas)) {
-            Gas newGas = new Gas(c, r + 1, tileSize, tileset.getImage("GasOne"), this, 0);
-            map.addTile(c, r + 1, newGas);
-            placedThisRound.add(newGas);
-            numSquaresToFill--;
-            if (numSquaresToFill == 0) break;
-        }
+                    // Refresh tiles array after adding gas
+                    tiles = map.getTiles();
 
-        index++; // Move on to next gas tile to spread from
+                    if (numSquaresToFill == 0) {
+                        break;  // Stop if no more gas tiles to place
+                    }
+                }
+            }
+        }
+        index++;  // Move to next gas tile to spread from
     }
 }
 
+// Constants for tile types (make sure these match your existing tile IDs)
+private static final int TILE_WATER = 1;  // example water tile ID
+private static final int TILE_GAS = 2;    // example gas tile ID
+
+// State variables for gas exposure tracking
+private int gasContactTicks = 0;  // how many game ticks player has been in gas
+private static final int GAS_KILL_TICKS = 180; // 3 seconds if 60 FPS
+
+// State variables for double jump
+private boolean canDoubleJump = false;
+private boolean hasDoubleJumped = false;
+
+// Call this method in your main game loop to update player effects based on current tile
+public void updatePlayerTileEffects() {
+    int playerX = player.getTileX(); // get player's current tile X coordinate
+    int playerY = player.getTileY(); // get player's current tile Y coordinate
+    
+    int currentTile = getTile(playerX, playerY);
+
+    // WATER: Slow down the player when standing on water tile
+    if (currentTile == TILE_WATER) {
+        player.setSpeedMultiplier(0.5);  // slow speed by half on water
+    } else {
+        player.setSpeedMultiplier(1.0);  // normal speed otherwise
+    }
+
+    // GAS: If player is on gas tile, start counting ticks, else reset
+    if (currentTile == TILE_GAS) {
+        gasContactTicks++;
+        if (gasContactTicks >= GAS_KILL_TICKS) {
+            player.kill(); // kill the player after 3 seconds in gas
+        }
+    } else {
+        gasContactTicks = 0;  // reset timer if player leaves gas tile
+    }
+}
+
+// Call this method when player jumps (hook into your player jump method)
+public void handlePlayerJump() {
+    if (player.isOnGround()) {
+        // Reset double jump availability when touching the ground
+        canDoubleJump = true;
+        hasDoubleJumped = false;
+        player.jump();
+    } else if (canDoubleJump && !hasDoubleJumped) {
+        // Allow one double jump in the air
+        player.jump();
+        hasDoubleJumped = true;
+    }
+}
+
+// Make sure to call updatePlayerTileEffects() each game update cycle
+// and replace your player's normal jump with handlePlayerJump()
