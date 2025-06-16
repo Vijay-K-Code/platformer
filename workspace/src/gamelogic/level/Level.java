@@ -514,5 +514,3 @@ public void handlePlayerJump() {
     }
 }
 
-// Make sure to call updatePlayerTileEffects() each game update cycle
-// and replace your player's normal jump with handlePlayerJump()
