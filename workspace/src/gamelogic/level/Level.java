@@ -32,9 +32,13 @@ public class Level {
 	private boolean active;
 	private boolean playerDead;
 	private boolean playerWin;
+	
 
 	private ArrayList<Enemy> enemiesList = new ArrayList<>();
 	private ArrayList<Flower> flowers = new ArrayList<>();
+
+	public ArrayList<Water> waterTiles = new ArrayList<>();
+	
 
 	private List<PlayerDieListener> dieListeners = new ArrayList<>();
 	private List<PlayerWinListener> winListeners = new ArrayList<>();
@@ -45,6 +49,7 @@ public class Level {
 	private int tileSize;
 	private Tileset tileset;
 	public static float GRAVITY = 70;
+	private long gasTouchStartTime = 0;
 
 	public Level(LevelData leveldata) {
 		this.leveldata = leveldata;
@@ -152,7 +157,49 @@ public class Level {
 		if (active) {
 			// Update the player
 			player.update(tslf);
+boolean playerTouchingGas = false;
+	Tile[][] tiles = map.getTiles();
+	outer:
+	for (int x = 0; x < tiles.length; x++) {
+		for (int y = 0; y < tiles[x].length; y++) {
+			Tile tile = tiles[x][y];
+			if (tile instanceof Gas) {
+				Gas gas = (Gas) tile;
+				if (gas.getHitbox() != null && player.getHitbox() != null &&
+					gas.getHitbox().isIntersecting(player.getHitbox())) {
+					playerTouchingGas = true;
+					break outer;
+				}
+			}
+		}
+	}
 
+    if (playerTouchingGas) {
+        if (gasTouchStartTime == 0) {
+            gasTouchStartTime = System.currentTimeMillis();
+        }
+    } else {
+        gasTouchStartTime = 0;
+    }
+
+    if (gasTouchStartTime != 0) {
+        long elapsed = System.currentTimeMillis() - gasTouchStartTime;
+        if (elapsed >= 3000) {
+            onPlayerDeath(); 
+            gasTouchStartTime = 0;
+        }
+    }
+	player.playerTouchingWater = false;
+	for (int i=0; i<waterTiles.size(); i++) {
+				if (waterTiles.get(i).getHitbox().isIntersecting(player.getHitbox())) {
+					player.playerTouchingWater = true;
+					break;
+				}
+			}
+	
+
+			
+			
 			// Player death
 			if (map.getFullHeight() + 100 < player.getY())
 				onPlayerDeath();

@@ -16,10 +16,11 @@ public class Player extends PhysicsObject{
 	public float walkSpeed = 400;
 	public float jumpPower = 1350;
 	private boolean canDoubleJump = false;
+	public boolean playerTouchingWater = false; 
 	
 // The player can jump twice before touching the ground again.
 private int jumpCount = 0;
-private final int maxJumps = 2;
+private int maxJumps = 2;
 
 
 	private boolean isJumping = false;
@@ -36,65 +37,87 @@ private final int maxJumps = 2;
 		this.hitbox = new RectHitbox(this, offset,offset, width -offset, height - offset);
 	}
 
-private boolean isInWater() {
-	if (level == null || level.getLevelData() == null || level.getLevelData().getTiles() == null) {
-		return false;
-	}
-	Tile[][] tiles = getLevel().getLevelData().getTiles();
-	int tileSize = getLevel().getLevelData().getTileSize();
 
-	int left = (int)(getX() / tileSize);
-	int right = (int)((getX() + width - 1) / tileSize);
-	int top = (int)(getY() / tileSize);
-	int bottom = (int)((getY() + height - 1) / tileSize);
+public boolean isInWater() {
+    if (level == null || level.getLevelData() == null || level.getLevelData().getTiles() == null) {
+        return false;
+    }
+    Tile[][] tiles = level.getLevelData().getTiles();
 
-	for (int col = left; col <= right; col++) {
-		for (int row = top; row <= bottom; row++) {
-			if (col >= 0 && row >= 0 && col < tiles.length && row < tiles[0].length) {
-				if (tiles[col][row] instanceof gamelogic.tiles.Water) {
-					return true;
-				}
-			}
-		}
-	}
-	return false;
+    for (int row = 0; row < tiles.length; row++) {
+        for (int col = 0; col < tiles[row].length; col++) {
+            Tile tile = tiles[row][col];
+            if (tile instanceof gamelogic.tiles.Water && tile.getHitbox() != null && this.hitbox != null) {
+                if (this.hitbox.isIntersecting(tile.getHitbox())) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
+
 
 	@Override
 	public void update(float tslf) {
 		super.update(tslf);
 		
 		movementVector.x = 0;
+		if (playerTouchingWater){
+			movementVector.x = 0.2f; // slow horizontal movement in water
+		}
 
 boolean inWater = isInWater();
 float speedMultiplier;
-if (inWater) {
-	speedMultiplier = 0.3f;
+if (playerTouchingWater) {
+	speedMultiplier = 0.1f;
 } else {
 	speedMultiplier = 1.0f;
 }
 
 if(PlayerInput.isLeftKeyDown()) {
-	movementVector.x = -walkSpeed * speedMultiplier;
+	if (playerTouchingWater){
+		movementVector.x = -walkSpeed * speedMultiplier * 0.05f; // Slower movement in water
+	} else {
+		movementVector.x = -walkSpeed * speedMultiplier;
+	}
+	
 }
 if(PlayerInput.isRightKeyDown()) {
+	if (isInWater()){
+		movementVector.x = +walkSpeed * speedMultiplier * 0.05f; // Slower movement in water
+	} else {
 	movementVector.x = +walkSpeed * speedMultiplier;
-}
+}}
 
 	if(PlayerInput.isJumpKeyDown() && !isJumping) {
-		int allowedJumps = canDoubleJump ? maxJumps : 1;
-if (jumpCount < allowedJumps) {
+		
+maxJumps=2;
+jumpCount = 1;
+		movementVector.y = -jumpPower;
+		isJumping = true;
+		 // Reset maxJumps when the player jumps
+		 // Reset jump count to 1 when the player jumps
+	}
+	if (PlayerInput.isJumpKeyDown() && isJumping && jumpCount<maxJumps) {
+		
 	movementVector.y = -jumpPower;
 	jumpCount++;
 	// Use collisionMatrix[BOT] to check if player is on the ground
 	if (collisionMatrix[BOT] != null) {
+		isJumping = false; // Reset jumping state if player is on the ground
+		jumpCount = 0; // Reset jump count when touching the ground
+	}
+	} else if (PlayerInput.isJumpKeyDown() && isJumping && jumpCount >= maxJumps) {
+		// If the player is already jumping and has reached the max jumps, do nothing
+	} else if (collisionMatrix[BOT] != null) {
+		// If the player is on the ground, reset jumping state and jump count
+		isJumping = false;
 		jumpCount = 0;
-		canDoubleJump = false; // Remove this line if you want double jump to persist after landing
-	}
+	} else {
+		isJumping = true; // Player is in the air
+		jumpCount = 1; // Reset jump count to 1 when jumping
 }
-		movementVector.y = -jumpPower;
-		isJumping = true;
-	}
         if (inWater) {
 	
 	
