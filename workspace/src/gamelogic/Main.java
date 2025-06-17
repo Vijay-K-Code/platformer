@@ -60,7 +60,7 @@ public class Main extends GameBase implements PlayerDieListener, PlayerWinListen
 		
 		active = true;
 		
-		numberOfTries = 3;
+		numberOfTries = 0;
 		levelStartTime = System.currentTimeMillis();
 		
 		levelCompleteBar = new LevelCompleteBar(100, 10, SCREEN_WIDTH - 200, 10, currentLevel.getPlayer());
