@@ -23,24 +23,60 @@ public class Player extends PhysicsObject{
 		this.hitbox = new RectHitbox(this, offset,offset, width -offset, height - offset);
 	}
 
+    private boolean isInWater() {
+	Tile[][] tiles = getLevel().getLevelData().getTiles();
+    int tileSize = getLevel().getLevelData().getTileSize();
+    
+	int left = (int)(getX() / tileSize);
+	int right = (int)((getX() + width - 1) / tileSize);
+	int top = (int)(getY() / tileSize);
+	int bottom = (int)((getY() + height - 1) / tileSize);
+
+    for (int col = left; col <= right; col++) {
+        for (int row = top; row <= bottom; row++) {
+            if (col >= 0 && row >= 0 && col < tiles.length && row < tiles[0].length) {
+                if (tiles[col][row] instanceof gamelogic.tiles.Water) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 	@Override
 	public void update(float tslf) {
 		super.update(tslf);
 		
 		movementVector.x = 0;
-		if(PlayerInput.isLeftKeyDown()) {
-			movementVector.x = -walkSpeed;
-		}
-		if(PlayerInput.isRightKeyDown()) {
-			movementVector.x = +walkSpeed;
-		}
+
+boolean inWater = isInWater();
+float speedMultiplier = inWater ? 0.4f : 1.0f;
+
+if(PlayerInput.isLeftKeyDown()) {
+	movementVector.x = -walkSpeed * speedMultiplier;
+}
+if(PlayerInput.isRightKeyDown()) {
+	movementVector.x = +walkSpeed * speedMultiplier;
+}
+
 		if(PlayerInput.isJumpKeyDown() && !isJumping) {
 			movementVector.y = -jumpPower;
 			isJumping = true;
 		}
+        if (inWater) {
+	
+	
+	
+	// Dampens gravity/movement in water
+	movementVector.y *= 0.85f;
+}
+
 		
 		isJumping = true;
 		if(collisionMatrix[BOT] != null) isJumping = false;
+
+        
 	}
 
 	@Override

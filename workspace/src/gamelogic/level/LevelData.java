@@ -1,6 +1,7 @@
 package gamelogic.level;
 
 import gameengine.loaders.Mapdata;
+import gamelogic.tiles.Tile;
 
 public class LevelData {
 
@@ -30,5 +31,12 @@ public class LevelData {
 	public int getTileSize(){
 		return mapdata.getTileSize();
 	}
+
+	private Tile[][] tiles;
+   
+
+    public Tile[][] getTiles() {
+        return tiles;
+    }
 
 }

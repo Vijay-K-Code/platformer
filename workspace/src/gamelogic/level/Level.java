@@ -431,4 +431,22 @@ private void addGas(int col, int row, Map map, int numSquaresToFill, ArrayList<G
         index++;  // Move to next gas tile to spread from
     }
 }
+private boolean isInWater(Tile[][] tiles, float x, float y, int width, int height) {
+	int left = (int)(x / tileSize);
+	int right = (int)((x + width - 1) / tileSize);
+	int top = (int)(y / tileSize);
+	int bottom = (int)((y + height - 1) / tileSize);
+
+	for (int col = left; col <= right; col++) {
+		for (int row = top; row <= bottom; row++) {
+			if (col >= 0 && row >= 0 && col < tiles.length && row < tiles[0].length) {
+				if (tiles[col][row] instanceof Water) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 }

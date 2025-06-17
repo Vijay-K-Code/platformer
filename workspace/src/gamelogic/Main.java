@@ -14,6 +14,7 @@ import gamelogic.level.Level;
 import gamelogic.level.LevelData;
 import gamelogic.level.PlayerDieListener;
 import gamelogic.level.PlayerWinListener;
+import gamelogic.tiles.Tile;
 
 public class Main extends GameBase implements PlayerDieListener, PlayerWinListener, ScreenTransitionListener{
 	public static final int SCREEN_WIDTH = (int)Toolkit.getDefaultToolkit().getScreenSize().getWidth()-200;
@@ -130,6 +131,9 @@ public class Main extends GameBase implements PlayerDieListener, PlayerWinListen
 		screenTransition.update(tslf);
 		
 		levelCompleteBar.update(tslf);
+
+
+
 	}
 
 	@Override
@@ -149,4 +153,5 @@ public class Main extends GameBase implements PlayerDieListener, PlayerWinListen
 		g.setColor(Color.WHITE);
 		g.fillRect(0, 0-MyWindow.getInsetY(), SCREEN_WIDTH, SCREEN_HEIGHT+MyWindow.getInsetY()*2);
 	}
+	
 }
