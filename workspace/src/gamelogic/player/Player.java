@@ -24,6 +24,9 @@ public class Player extends PhysicsObject{
 	}
 
     private boolean isInWater() {
+        if (level == null || level.getLevelData() == null || level.getLevelData().getTiles() == null) {
+        return false;
+    }
 	Tile[][] tiles = getLevel().getLevelData().getTiles();
     int tileSize = getLevel().getLevelData().getTileSize();
     

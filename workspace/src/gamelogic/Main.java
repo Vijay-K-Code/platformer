@@ -133,7 +133,6 @@ public class Main extends GameBase implements PlayerDieListener, PlayerWinListen
 		levelCompleteBar.update(tslf);
 
 
-
 	}
 
 	@Override
