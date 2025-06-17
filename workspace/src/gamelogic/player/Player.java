@@ -54,7 +54,12 @@ public class Player extends PhysicsObject{
 		movementVector.x = 0;
 
 boolean inWater = isInWater();
-float speedMultiplier = inWater ? 0.4f : 1.0f;
+float speedMultiplier;
+if (inWater) {
+	speedMultiplier = 0.3f;
+} else {
+	speedMultiplier = 1.0f;
+}
 
 if(PlayerInput.isLeftKeyDown()) {
 	movementVector.x = -walkSpeed * speedMultiplier;
