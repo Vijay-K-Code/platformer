@@ -24,6 +24,10 @@ public class Tile{
 		this.solid = solid;
 		this.level = level;
 	}
+	public Tile(float x, float y, int size) {
+		this.position = new Vector2D(x * size, y * size);
+		this.size = size;
+	}
 	
 	public void update (float tslf) {};
 	
